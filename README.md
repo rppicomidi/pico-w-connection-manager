@@ -5,16 +5,21 @@ flash-stored lists of known SSIDs and passwords
 
 This class is designed to be included as a git submodule within a larger project.
 
-For an example of how to use it, see TODO.
+For an example of how to use it, and where to install the source code in your
+project directory structure, see the [demo program](https://github.com/rppicomidi/pico-w-connection-manager-demo).
 
 # Dependencies
-Aside from the dependencies on the Pico C/C++ SDK, this class
-uses the following external code:
+Aside from the dependencies on the Pico C/C++ SDK and the LwIP
+library the SDK includes, this class uses the following external code:
 
 - the `parson` JSON library to serialize and deserialize settings to JSON format
 - the `littlefs-lib` file system to store Wi-Fi settings in JSON format to
 a small reserved amount of Pico board program flash.
-- the `LwIP` library for a TCP/IP stack.
+- the `main_lwipopts.h` include file for the main project. This file is the
+`lwipopts.h` file used by the application that is using the `Pico-w-connection-manager`
+class. It must be installed 2 directory levels up from the `pico-w-connection-manager`
+directory, and it must be called `main_lwipopts.h`. See `lwipopts.h` in this project
+for more details.
 
 # Installation
 Get this source code as a submodule within the same subdirectory as the `parson` library
