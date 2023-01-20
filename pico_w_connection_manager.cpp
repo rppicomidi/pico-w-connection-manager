@@ -407,9 +407,10 @@ void rppicomidi::Pico_w_connection_manager::task()
                 }
             }
         }
- 
-        //cyw43_arch_poll();
-        if (state == CONNECTION_REQUESTED || state == CONNECTED) {
+        if (state == SCAN_COMPLETE && is_link_up()) {
+            state = CONNECTED;
+        }
+        else if (state == CONNECTION_REQUESTED || state == CONNECTED) {
             int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
             if (status < 0) {
                 printf("Connection error ");
