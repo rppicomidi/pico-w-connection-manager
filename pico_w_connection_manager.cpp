@@ -129,13 +129,25 @@ void rppicomidi::Pico_w_connection_manager::get_country_code(std::string& code_)
     code_ = std::string(code_str);
 }
 
-bool rppicomidi::Pico_w_connection_manager::get_country_from_code(const std::string&code_, std::string& country_)
+bool rppicomidi::Pico_w_connection_manager::get_country_from_code(const std::string& code_, std::string& country_)
 {
     bool result = false;
     auto it = countries.find(CYW43_COUNTRY(code_.c_str()[0], code_.c_str()[1], 0));
     if (it != countries.end()) {
         country_ = it->second;
         result = true;
+    }
+    return result;
+}
+
+const char* rppicomidi::Pico_w_connection_manager::get_country_from_code(const std::string&code_)
+{
+    const char* result = nullptr;
+    int32_t icode = CYW43_COUNTRY(code_.c_str()[0], code_.c_str()[1], 0);
+    auto it = countries.find(icode);
+
+    if (it != countries.end()) {
+        result = it->second.c_str();
     }
     return result;
 }

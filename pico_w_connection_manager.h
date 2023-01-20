@@ -148,7 +148,8 @@ public:
      * @param country the corresponding country
      * @return true if the code was valid, false if not
      */
-    bool get_country_from_code(const std::string&code, std::string& country);
+    bool get_country_from_code(const std::string& code, std::string& country);
+    const char* get_country_from_code(const std::string& code);
 
     /**
      * @brief save the current country code, last SSID for which a connection
