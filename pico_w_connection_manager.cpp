@@ -32,6 +32,7 @@ rppicomidi::Pico_w_connection_manager::Pico_w_connection_manager() :
     country_code{CYW43_COUNTRY_WORLDWIDE}, state{DEINITIALIZED}, 
     scan_test{nil_time}, link_up_callback{nullptr,0},
     link_down_callback{nullptr,0},
+    link_error_callback{nullptr,0},
     scan_complete_callback{nullptr, 0},
     settings_saved_state{UNKNOWN}
 {
@@ -370,10 +371,21 @@ bool rppicomidi::Pico_w_connection_manager::load_settings()
     return result;
 }
 
+
+void rppicomidi::Pico_w_connection_manager::set_current_passphrase(const std::string& pw)
+{
+    if (pw != current_ssid.passphrase) {
+        current_ssid.passphrase = pw;
+        settings_saved_state = NOT_SAVED;
+    }
+}
+
+
 void rppicomidi::Pico_w_connection_manager::add_known_ssid(const Ssid_info& info)
 {
     for (auto& known: known_ssids) {
         if (known.ssid == info.ssid) {
+            settings_saved_state = (known.passphrase == info.passphrase && known.security == info.security) ? SAVED:NOT_SAVED;
             known.passphrase = info.passphrase;
             known.security = info.security;
             return;
@@ -387,6 +399,7 @@ void rppicomidi::Pico_w_connection_manager::task()
 {
     if (state != DEINITIALIZED) {
         if ((state == SCAN_REQUESTED || state == SCANNING) && absolute_time_diff_us(get_absolute_time(), scan_test) < 0) {
+            last_link_error = "";
             if (state == SCAN_REQUESTED) {
                 cyw43_wifi_scan_options_t scan_options;
                 memset(&scan_options, 0, sizeof(scan_options));
@@ -409,29 +422,36 @@ void rppicomidi::Pico_w_connection_manager::task()
         }
         if (state == SCAN_COMPLETE && is_link_up()) {
             state = CONNECTED;
+            last_link_error = "";
         }
         else if (state == CONNECTION_REQUESTED || state == CONNECTED) {
             int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
             if (status < 0) {
-                printf("Connection error ");
                 switch(status) {
                     case CYW43_LINK_BADAUTH:
-                        printf("not authorized\r\n");
+                        last_link_error = "not authorized";
                         break;
                     case CYW43_LINK_NONET:
-                        printf("cannot find SSID\r\n");
+                        last_link_error = "cannot find SSID";
                         break;
                     case CYW43_LINK_FAIL:
-                        printf("link failure\r\n");
+                        last_link_error = "link failure";
                         break;
                     default:
-                        printf("unknown error\r\n");
+                        last_link_error = "unknown error";
                         break;
                 }
-                state = INITIALIZED;
+                printf("Connection error %s\r\n", last_link_error.c_str());
+                // clear the error? I am not sure why I have to toggle Wi-Fi off and on
+                deinitialize();
+                initialize();
+                if (link_error_callback.cb) {
+                    link_error_callback.cb(link_error_callback.context, last_link_error.c_str());
+                }
             }
             else if (status == CYW43_LINK_UP && state == CONNECTION_REQUESTED) {
                 state = CONNECTED;
+                last_link_error = "";
                 if (link_up_callback.cb != nullptr) {
                     link_up_callback.cb(link_up_callback.context);
                 }
@@ -496,6 +516,7 @@ bool rppicomidi::Pico_w_connection_manager::connect()
     }
     else {
         state = CONNECTION_REQUESTED;
+        last_link_error = "";
     }
     return true;
 }

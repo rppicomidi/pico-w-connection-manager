@@ -265,13 +265,7 @@ public:
      * 
      * @param pw 
      */
-    void set_current_passphrase(const std::string& pw)
-    {
-        if (pw != current_ssid.passphrase) {
-            current_ssid.passphrase = pw;
-            settings_saved_state = NOT_SAVED;
-        }
-    }
+    void set_current_passphrase(const std::string& pw);
 
     /**
      * @brief Set the security value for the SSID set by set_current_ssid()
@@ -336,6 +330,18 @@ public:
     }
 
     /**
+     * @brief register the callback function to call if the link is in an error state
+     *
+     * To unregister the callback, call this function again with cb==nullptr
+     * @param cb
+     * @param context
+     */
+    void register_link_error_callback(void (*cb)(void*, const char*), void* context)
+    {
+        link_error_callback.cb = cb; link_error_callback.context = context;
+    }
+
+    /**
      * @brief register the callback function to call when scan completes
      *
      * To unregister the callback, call this function again with cb==nullptr
@@ -372,9 +378,15 @@ public:
     bool erase_known_ssid_by_idx(size_t idx);
 
     Settings_saved_state get_settings_saved_state() { return settings_saved_state; }
+
+    const char* get_last_link_error() {return last_link_error.c_str(); }
 private:
     struct wifi_callback {
         void (*cb)(void*);
+        void* context;
+    };
+    struct wifi_err_cb {
+        void (*cb)(void*, const char*); // context, error string
         void* context;
     };
     static int static_scan_result(void *env, const cyw43_ev_scan_result_t *result);
@@ -389,8 +401,10 @@ private:
     std::vector<cyw43_ev_scan_result_t> discovered_ssids;
     wifi_callback link_up_callback;
     wifi_callback link_down_callback;
+    wifi_err_cb link_error_callback;
     wifi_callback scan_complete_callback;
     Settings_saved_state settings_saved_state;
+    std::string last_link_error;
     static constexpr const char* wifi_info_dir{"/wifi_info"};
     static constexpr const char* wifi_info_file{"/wifi_info/wifi_info.json"};
 };
