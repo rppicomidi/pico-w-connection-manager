@@ -203,6 +203,19 @@ bool rppicomidi::Pico_w_connection_manager::start_scan()
 {
     if (state == SCAN_REQUESTED || state == SCANNING)
         return false;
+    else if (state == DEINITIALIZED) {
+        initialize();
+    }
+    else if (state == CONNECTED) {
+        disconnect();
+        deinitialize();
+        initialize();
+    }
+    else if (state == CONNECTION_REQUESTED) {
+        deinitialize();
+        initialize();
+    }
+    // nothing to do for SCAN_COMPLETE or INITIALIZED
     discovered_ssids.clear();
     state = SCAN_REQUESTED;
     return true;
@@ -484,6 +497,7 @@ bool rppicomidi::Pico_w_connection_manager::is_link_up()
 
 bool rppicomidi::Pico_w_connection_manager::connect()
 {
+#if 0
     if (state == DEINITIALIZED) {
         printf("Wifi not initialized\r\n");
         return false;
@@ -492,6 +506,7 @@ bool rppicomidi::Pico_w_connection_manager::connect()
         printf("Cannot connect while scan is in progress\r\n");
         return false;
     }
+#endif
     if (current_ssid.ssid.size() == 0) {
         printf("No SSID specified\r\n");
         return false;
@@ -511,6 +526,23 @@ bool rppicomidi::Pico_w_connection_manager::connect()
         auth = CYW43_AUTH_WPA_TKIP_PSK;
     }
     const char* pw = (auth == CYW43_AUTH_OPEN) ? nullptr : current_ssid.passphrase.c_str();
+
+    // Make sure the hardware will let us make a connection
+    if (state == DEINITIALIZED) {
+        initialize();
+    }
+    else if (state == CONNECTED) {
+        disconnect();
+        deinitialize();
+        initialize();
+    }
+    else if (state == CONNECTION_REQUESTED ||
+            state == SCANNING ||
+            state == SCAN_REQUESTED) {
+        deinitialize();
+        initialize();
+    }
+
     if (cyw43_arch_wifi_connect_async(current_ssid.ssid.c_str(), pw, auth) != 0) {
         return false;
     }
