@@ -35,7 +35,11 @@ git submodule add https://github.com/rppicomidi/pico-w-connection-manager.git
 # Known Issues
 For all known issues, check the date. By the time you build this, they
 may be fixed.
-
+## On 23-jan-2023
+The Pico-W always fails to connect to an open (no password) access point. This was
+fixed in the develop branch of the pico-sdk 3 days ago. See below how to update the SDK.
+(see [this pull requst](https://github.com/raspberrypi/pico-sdk/pull/1181)) if you are
+interested)
 ## On 6-dec-2022
 If you call `initialize()` after you call `deinitialize()` then the software will hang up.
 This is an issue the `pico-sdk`. To work around this issue, use the
