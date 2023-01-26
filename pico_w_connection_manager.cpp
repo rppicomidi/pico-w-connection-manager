@@ -393,12 +393,19 @@ void rppicomidi::Pico_w_connection_manager::set_current_passphrase(const std::st
     }
 }
 
+void rppicomidi::Pico_w_connection_manager::set_current_ssid(const std::string& ssid)
+{
+    if (ssid != current_ssid.ssid) {
+        current_ssid.ssid = ssid;
+        settings_saved_state = NOT_SAVED;
+    }
+}
 
 void rppicomidi::Pico_w_connection_manager::add_known_ssid(const Ssid_info& info)
 {
     for (auto& known: known_ssids) {
         if (known.ssid == info.ssid) {
-            settings_saved_state = (known.passphrase == info.passphrase && known.security == info.security) ? SAVED:NOT_SAVED;
+            settings_saved_state = (settings_saved_state == SAVED && known.passphrase == info.passphrase && known.security == info.security) ? SAVED:NOT_SAVED;
             known.passphrase = info.passphrase;
             known.security = info.security;
             return;
@@ -406,6 +413,19 @@ void rppicomidi::Pico_w_connection_manager::add_known_ssid(const Ssid_info& info
     }
     known_ssids.push_back(info);
     settings_saved_state = NOT_SAVED;
+}
+
+void rppicomidi::Pico_w_connection_manager::link_up_action()
+{
+    state = CONNECTED;
+    last_link_error = "";
+    if (link_up_callback.cb != nullptr) {
+        link_up_callback.cb(link_up_callback.context);
+    }
+    add_known_ssid(current_ssid);
+    if (settings_saved_state != SAVED) {
+        save_settings();
+    }
 }
 
 void rppicomidi::Pico_w_connection_manager::task()
@@ -431,11 +451,13 @@ void rppicomidi::Pico_w_connection_manager::task()
                 if (scan_complete_callback.cb != nullptr) {
                     scan_complete_callback.cb(scan_complete_callback.context);
                 }
+                if (state == CONNECTED) {
+                    link_up_action();
+                }
             }
         }
         if (state == SCAN_COMPLETE && is_link_up()) {
-            state = CONNECTED;
-            last_link_error = "";
+            link_up_action();
         }
         else if (state == CONNECTION_REQUESTED || state == CONNECTED) {
             int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
@@ -463,15 +485,7 @@ void rppicomidi::Pico_w_connection_manager::task()
                 }
             }
             else if (status == CYW43_LINK_UP && state == CONNECTION_REQUESTED) {
-                state = CONNECTED;
-                last_link_error = "";
-                if (link_up_callback.cb != nullptr) {
-                    link_up_callback.cb(link_up_callback.context);
-                }
-                add_known_ssid(current_ssid);
-                if (settings_saved_state != SAVED) {
-                    save_settings();
-                }
+                link_up_action();
             }
             else if (status != CYW43_LINK_UP && state == CONNECTED) {
                 if (status != CYW43_LINK_DOWN && status >= 0) {
@@ -497,16 +511,6 @@ bool rppicomidi::Pico_w_connection_manager::is_link_up()
 
 bool rppicomidi::Pico_w_connection_manager::connect()
 {
-#if 0
-    if (state == DEINITIALIZED) {
-        printf("Wifi not initialized\r\n");
-        return false;
-    }
-    if (is_scan_in_progress()) {
-        printf("Cannot connect while scan is in progress\r\n");
-        return false;
-    }
-#endif
     if (current_ssid.ssid.size() == 0) {
         printf("No SSID specified\r\n");
         return false;

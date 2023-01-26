@@ -252,13 +252,7 @@ public:
      * 
      * @param ssid contains the SSID to which you would like to connect next
      */
-    void set_current_ssid(const std::string& ssid)
-    {
-        if (ssid != current_ssid.ssid) {
-            current_ssid.ssid = ssid;
-            settings_saved_state = NOT_SAVED;
-        }
-    }
+    void set_current_ssid(const std::string& ssid);
 
     /**
      * @brief Set the passphrase for the SSID set by set_current_ssid()
@@ -392,6 +386,7 @@ private:
     static int static_scan_result(void *env, const cyw43_ev_scan_result_t *result);
     
     void add_known_ssid(const Ssid_info& info);
+    void link_up_action();
     uint32_t country_code;
     std::map<uint32_t, std::string> countries;
     Wifi_state state;
